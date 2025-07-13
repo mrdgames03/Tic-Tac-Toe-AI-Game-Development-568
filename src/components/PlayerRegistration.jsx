@@ -5,15 +5,16 @@ import { useGame } from '../context/GameContext';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiUser, FiArrowLeft, FiCheck } = FiIcons;
+const { FiUser, FiArrowLeft, FiCheck, FiLoader } = FiIcons;
 
 function PlayerRegistration() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { state, dispatch } = useGame();
+  const { state, registerPlayer } = useGame();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!name.trim()) {
@@ -30,17 +31,20 @@ function PlayerRegistration() {
       setError('Name must be less than 20 characters');
       return;
     }
-
-    dispatch({
-      type: 'SET_PLAYER',
-      payload: { name: name.trim() }
-    });
     
-    navigate('/game');
+    setIsSubmitting(true);
+    const success = await registerPlayer(name.trim());
+    setIsSubmitting(false);
+    
+    if (success) {
+      navigate('/game');
+    } else {
+      setError('Failed to register. Please try again.');
+    }
   };
 
   return (
-    <motion.div
+    <motion.div 
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -71,6 +75,7 @@ function PlayerRegistration() {
               placeholder="Enter your name"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all"
               maxLength={20}
+              disabled={isSubmitting}
             />
             {error && (
               <motion.p
@@ -102,19 +107,28 @@ function PlayerRegistration() {
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/')}
               className="flex-1 py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+              disabled={isSubmitting}
             >
               <SafeIcon icon={FiArrowLeft} className="text-sm" />
               <span>Back</span>
             </motion.button>
-            
             <motion.button
               type="submit"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-medium transition-all flex items-center justify-center space-x-2"
+              disabled={isSubmitting}
             >
-              <SafeIcon icon={FiCheck} className="text-sm" />
-              <span>Register</span>
+              {isSubmitting ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                />
+              ) : (
+                <SafeIcon icon={FiCheck} className="text-sm" />
+              )}
+              <span>{isSubmitting ? 'Registering...' : 'Register'}</span>
             </motion.button>
           </div>
         </form>

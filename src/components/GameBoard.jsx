@@ -23,9 +23,10 @@ function GameBoard() {
   const [isThinking, setIsThinking] = useState(false);
   const [playerSymbol, setPlayerSymbol] = useState('X'); // X or O
   const [aiSymbol, setAiSymbol] = useState('O'); // O or X
+  const [isSavingResult, setIsSavingResult] = useState(false);
   
   const navigate = useNavigate();
-  const { state, dispatch } = useGame();
+  const { state, dispatch, saveGameResult } = useGame();
 
   useEffect(() => {
     if (!state.currentPlayer) {
@@ -69,13 +70,13 @@ function GameBoard() {
   const makeAIMove = async () => {
     setIsThinking(true);
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const aiMove = getAIMove(board, state.currentDifficulty);
+
+    const aiMove = getAIMove(board, state.currentDifficulty, aiSymbol);
     if (aiMove !== -1) {
       const newBoard = [...board];
       newBoard[aiMove] = aiSymbol;
       setBoard(newBoard);
-      
+
       const result = checkWinner(newBoard);
       if (result.winner) {
         setWinner(result.winner);
@@ -89,6 +90,7 @@ function GameBoard() {
         setIsPlayerTurn(true);
       }
     }
+    
     setIsThinking(false);
   };
 
@@ -113,7 +115,8 @@ function GameBoard() {
     }
   };
 
-  const recordGameResult = (result) => {
+  const recordGameResult = async (result) => {
+    // Update local state first
     dispatch({
       type: 'ADD_GAME_RESULT',
       payload: {
@@ -123,6 +126,15 @@ function GameBoard() {
         timestamp: new Date().toISOString()
       }
     });
+    
+    // Then save to Supabase
+    setIsSavingResult(true);
+    await saveGameResult(
+      state.currentPlayer.name,
+      result,
+      state.currentDifficulty
+    );
+    setIsSavingResult(false);
   };
 
   const resetGame = () => {
@@ -242,7 +254,7 @@ function GameBoard() {
       {/* Modals */}
       <AnimatePresence>
         {showCoinFlip && (
-          <CoinFlip 
+          <CoinFlip
             onFlipComplete={handleCoinFlipComplete}
             onSkip={skipCoinFlip}
           />
@@ -255,6 +267,7 @@ function GameBoard() {
             aiSymbol={aiSymbol}
             onPlayAgain={resetGame}
             onHome={() => navigate('/')}
+            isSaving={isSavingResult}
           />
         )}
         

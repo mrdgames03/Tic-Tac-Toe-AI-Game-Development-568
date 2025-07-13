@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiTrophy, FiX, FiMinus, FiPlay, FiHome } = FiIcons;
+const { FiTrophy, FiX, FiMinus, FiPlay, FiHome, FiDatabase } = FiIcons;
 
-function GameResult({ status, playerSymbol, aiSymbol, onPlayAgain, onHome }) {
+function GameResult({ status, playerSymbol, aiSymbol, onPlayAgain, onHome, isSaving = false }) {
   const getResultConfig = () => {
     switch (status) {
       case 'win':
@@ -101,6 +101,23 @@ function GameResult({ status, playerSymbol, aiSymbol, onPlayAgain, onHome }) {
             {config.message}
           </motion.p>
 
+          {/* Saving State */}
+          {isSaving && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 flex items-center justify-center space-x-2 text-blue-400"
+            >
+              <SafeIcon icon={FiDatabase} className="text-sm" />
+              <span className="text-sm">Saving your result...</span>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"
+              />
+            </motion.div>
+          )}
+
           {/* Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -112,20 +129,26 @@ function GameResult({ status, playerSymbol, aiSymbol, onPlayAgain, onHome }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onHome}
-              className="flex-1 py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+              disabled={isSaving}
+              className={`
+                flex-1 py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg 
+                font-medium transition-colors flex items-center justify-center space-x-2
+                ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
             >
               <SafeIcon icon={FiHome} className="text-sm" />
               <span>Home</span>
             </motion.button>
-            
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onPlayAgain}
+              disabled={isSaving}
               className={`
                 flex-1 py-3 px-4 text-white rounded-lg font-medium transition-all
                 flex items-center justify-center space-x-2
                 bg-gradient-to-r ${config.color} hover:shadow-lg
+                ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               <SafeIcon icon={FiPlay} className="text-sm" />

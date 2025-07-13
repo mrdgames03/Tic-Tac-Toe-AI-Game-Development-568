@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameBoard from './components/GameBoard';
@@ -24,6 +24,7 @@ function App() {
                 Tic Tac Toe AI
               </h1>
               <p className="text-gray-300 text-lg">Challenge the AI and climb the leaderboard!</p>
+              <div className="mt-2 text-xs text-gray-400">Powered by Supabase</div>
             </motion.div>
 
             <AnimatePresence mode="wait">

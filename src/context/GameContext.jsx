@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { getLeaderboard, createOrUpdatePlayer, recordGameResult } from '../utils/supabaseService';
+import supabase from '../lib/supabase';
 
 const GameContext = createContext();
 
@@ -6,83 +8,37 @@ const initialState = {
   currentPlayer: null,
   gameHistory: [],
   leaderboard: [],
-  currentDifficulty: 'medium'
+  currentDifficulty: 'medium',
+  isLoading: false,
+  error: null,
 };
 
 function gameReducer(state, action) {
   switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, isLoading: false };
     case 'SET_PLAYER':
-      return { ...state, currentPlayer: action.payload };
-    
+      return { ...state, currentPlayer: action.payload, isLoading: false };
+    case 'SET_LEADERBOARD':
+      return { ...state, leaderboard: action.payload, isLoading: false };
     case 'ADD_GAME_RESULT':
       const newHistory = [...state.gameHistory, action.payload];
-      const updatedLeaderboard = updateLeaderboard(state.leaderboard, action.payload);
-      return {
-        ...state,
-        gameHistory: newHistory,
-        leaderboard: updatedLeaderboard
-      };
-    
+      return { ...state, gameHistory: newHistory };
     case 'SET_DIFFICULTY':
       return { ...state, currentDifficulty: action.payload };
-    
     case 'LOAD_DATA':
       return { ...state, ...action.payload };
-    
     default:
       return state;
   }
 }
 
-function updateLeaderboard(leaderboard, gameResult) {
-  const existingPlayer = leaderboard.find(p => p.name === gameResult.playerName);
-  
-  if (existingPlayer) {
-    const updated = leaderboard.map(player => {
-      if (player.name === gameResult.playerName) {
-        return {
-          ...player,
-          gamesPlayed: player.gamesPlayed + 1,
-          wins: player.wins + (gameResult.result === 'win' ? 1 : 0),
-          losses: player.losses + (gameResult.result === 'loss' ? 1 : 0),
-          draws: player.draws + (gameResult.result === 'draw' ? 1 : 0),
-          score: calculateScore(
-            player.wins + (gameResult.result === 'win' ? 1 : 0),
-            player.losses + (gameResult.result === 'loss' ? 1 : 0),
-            player.draws + (gameResult.result === 'draw' ? 1 : 0),
-            gameResult.difficulty
-          )
-        };
-      }
-      return player;
-    });
-    return updated.sort((a, b) => b.score - a.score);
-  } else {
-    const newPlayer = {
-      name: gameResult.playerName,
-      gamesPlayed: 1,
-      wins: gameResult.result === 'win' ? 1 : 0,
-      losses: gameResult.result === 'loss' ? 1 : 0,
-      draws: gameResult.result === 'draw' ? 1 : 0,
-      score: calculateScore(
-        gameResult.result === 'win' ? 1 : 0,
-        gameResult.result === 'loss' ? 1 : 0,
-        gameResult.result === 'draw' ? 1 : 0,
-        gameResult.difficulty
-      )
-    };
-    return [...leaderboard, newPlayer].sort((a, b) => b.score - a.score);
-  }
-}
-
-function calculateScore(wins, losses, draws, difficulty) {
-  const difficultyMultiplier = { easy: 1, medium: 2, hard: 3 };
-  return (wins * 3 + draws * 1) * difficultyMultiplier[difficulty];
-}
-
 export function GameProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
+  // Load initial data from localStorage (for fallback)
   useEffect(() => {
     const savedData = localStorage.getItem('ticTacToeData');
     if (savedData) {
@@ -93,14 +49,84 @@ export function GameProvider({ children }) {
         console.error('Error loading saved data:', error);
       }
     }
+    
+    // Fetch leaderboard from Supabase
+    fetchLeaderboard();
   }, []);
 
+  // Save data to localStorage as backup
   useEffect(() => {
     localStorage.setItem('ticTacToeData', JSON.stringify(state));
   }, [state]);
 
+  // Fetch leaderboard data from Supabase
+  const fetchLeaderboard = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const leaderboardData = await getLeaderboard();
+      dispatch({ type: 'SET_LEADERBOARD', payload: leaderboardData });
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to load leaderboard' });
+    }
+  };
+
+  // Register player
+  const registerPlayer = async (name) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const player = await createOrUpdatePlayer(name);
+      if (player) {
+        dispatch({ type: 'SET_PLAYER', payload: player });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error registering player:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to register player' });
+      return false;
+    }
+  };
+
+  // Record game result
+  const saveGameResult = async (playerName, result, difficulty) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const success = await recordGameResult(playerName, result, difficulty);
+      if (success) {
+        dispatch({
+          type: 'ADD_GAME_RESULT',
+          payload: {
+            playerName,
+            result,
+            difficulty,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        // Refresh leaderboard
+        fetchLeaderboard();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error saving game result:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to save game result' });
+      return false;
+    }
+  };
+
+  // Provider value with enhanced functionality
+  const value = {
+    state,
+    dispatch,
+    registerPlayer,
+    saveGameResult,
+    refreshLeaderboard: fetchLeaderboard
+  };
+
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={value}>
       {children}
     </GameContext.Provider>
   );
