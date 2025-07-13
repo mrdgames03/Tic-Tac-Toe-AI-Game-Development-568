@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiX, FiZap, FiTarget, FiBrain } = FiIcons;
+const { FiX, FiZap, FiTarget, FiBrain, FiClock } = FiIcons;
 
 function DifficultySelector({ currentDifficulty, onSelect, onClose }) {
   const difficulties = [
@@ -33,6 +33,17 @@ function DifficultySelector({ currentDifficulty, onSelect, onClose }) {
     }
   ];
 
+  const gameModes = [
+    {
+      id: 'timed',
+      name: 'Timed Tiles XO',
+      description: 'Time-based challenge! 3 seconds per tile',
+      icon: FiClock,
+      color: 'from-purple-400 to-pink-500',
+      multiplier: '4x points'
+    }
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -49,7 +60,7 @@ function DifficultySelector({ currentDifficulty, onSelect, onClose }) {
       >
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-white/10">
-          <h3 className="text-xl font-bold text-white">Select Difficulty</h3>
+          <h3 className="text-xl font-bold text-white">Select Game Mode</h3>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -61,49 +72,100 @@ function DifficultySelector({ currentDifficulty, onSelect, onClose }) {
         </div>
 
         {/* Difficulty Options */}
-        <div className="p-6 space-y-3">
-          {difficulties.map((difficulty, index) => (
-            <motion.button
-              key={difficulty.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onSelect(difficulty.id)}
-              className={`
-                w-full p-4 rounded-xl border-2 transition-all text-left
-                ${currentDifficulty === difficulty.id 
-                  ? 'border-white/40 bg-white/10' 
-                  : 'border-white/20 bg-white/5 hover:bg-white/10'
-                }
-              `}
-            >
-              <div className="flex items-center space-x-4">
-                <div className={`
-                  p-3 rounded-lg bg-gradient-to-r ${difficulty.color}
-                `}>
-                  <SafeIcon icon={difficulty.icon} className="text-xl text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-bold text-white">{difficulty.name}</h4>
-                    <span className="text-sm text-yellow-400 font-medium">
-                      {difficulty.multiplier}
-                    </span>
+        <div className="p-6 space-y-6">
+          {/* Classic Mode Section */}
+          <div>
+            <h4 className="text-lg font-semibold text-white mb-3">Classic Mode</h4>
+            <div className="space-y-3">
+              {difficulties.map((difficulty, index) => (
+                <motion.button
+                  key={difficulty.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onSelect(difficulty.id)}
+                  className={`
+                    w-full p-4 rounded-xl border-2 transition-all text-left
+                    ${currentDifficulty === difficulty.id
+                      ? 'border-white/40 bg-white/10'
+                      : 'border-white/20 bg-white/5 hover:bg-white/10'
+                    }
+                  `}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-lg bg-gradient-to-r ${difficulty.color}`}>
+                      <SafeIcon icon={difficulty.icon} className="text-xl text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-bold text-white">{difficulty.name}</h4>
+                        <span className="text-sm text-yellow-400 font-medium">
+                          {difficulty.multiplier}
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm">{difficulty.description}</p>
+                    </div>
+                    {currentDifficulty === difficulty.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-3 h-3 bg-green-400 rounded-full"
+                      />
+                    )}
                   </div>
-                  <p className="text-gray-300 text-sm">{difficulty.description}</p>
-                </div>
-                {currentDifficulty === difficulty.id && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="w-3 h-3 bg-green-400 rounded-full"
-                  />
-                )}
-              </div>
-            </motion.button>
-          ))}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Special Modes Section */}
+          <div>
+            <h4 className="text-lg font-semibold text-white mb-3">Special Modes</h4>
+            <div className="space-y-3">
+              {gameModes.map((mode, index) => (
+                <motion.button
+                  key={mode.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: (difficulties.length + index) * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onSelect(mode.id)}
+                  className={`
+                    w-full p-4 rounded-xl border-2 transition-all text-left
+                    ${currentDifficulty === mode.id
+                      ? 'border-white/40 bg-white/10'
+                      : 'border-white/20 bg-white/5 hover:bg-white/10'
+                    }
+                  `}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-lg bg-gradient-to-r ${mode.color}`}>
+                      <SafeIcon icon={mode.icon} className="text-xl text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-bold text-white">{mode.name}</h4>
+                        <span className="text-sm text-yellow-400 font-medium">
+                          {mode.multiplier}
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm">{mode.description}</p>
+                    </div>
+                    {currentDifficulty === mode.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-3 h-3 bg-green-400 rounded-full"
+                      />
+                    )}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
     </motion.div>
