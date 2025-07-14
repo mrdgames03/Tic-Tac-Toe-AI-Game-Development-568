@@ -8,35 +8,49 @@ export function calculateScore(result, difficulty) {
     'hard': 3,
     'timed': 4 // Add multiplier for timed mode
   };
-  
+
   const resultPoints = {
     'win': 3,
     'draw': 1,
     'loss': 0
   };
-  
+
   return resultPoints[result] * difficultyMultiplier[difficulty];
 }
 
 // Create or update player in the database
 export async function createOrUpdatePlayer(name) {
   try {
+    console.log('Attempting to create/update player:', name);
+    
     // Check if player exists
-    const { data: existingPlayer } = await supabase
-      .from('players_tictactoe')
+    const { data: existingPlayer, error: fetchError } = await supabase
+      .from('players_tictactoe_reg2025')
       .select('*')
       .eq('name', name)
       .single();
-    
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Error fetching player:', fetchError);
+      throw fetchError;
+    }
+
     if (existingPlayer) {
+      console.log('Player exists, updating login time');
       // Update last login time
-      await supabase
-        .from('players_tictactoe')
+      const { error: updateError } = await supabase
+        .from('players_tictactoe_reg2025')
         .update({ last_login: new Date().toISOString() })
         .eq('name', name);
-      
+
+      if (updateError) {
+        console.error('Error updating player:', updateError);
+        throw updateError;
+      }
+
       return existingPlayer;
     } else {
+      console.log('Creating new player');
       // Create new player
       const newPlayer = {
         name,
@@ -48,18 +62,23 @@ export async function createOrUpdatePlayer(name) {
         created_at: new Date().toISOString(),
         last_login: new Date().toISOString()
       };
-      
+
       const { data, error } = await supabase
-        .from('players_tictactoe')
+        .from('players_tictactoe_reg2025')
         .insert(newPlayer)
         .select()
         .single();
-      
-      if (error) throw error;
+
+      if (error) {
+        console.error('Error creating player:', error);
+        throw error;
+      }
+
+      console.log('Player created successfully:', data);
       return data;
     }
   } catch (error) {
-    console.error('Error creating/updating player:', error);
+    console.error('Error in createOrUpdatePlayer:', error);
     return null;
   }
 }
@@ -67,28 +86,30 @@ export async function createOrUpdatePlayer(name) {
 // Record a game result
 export async function recordGameResult(playerName, result, difficulty) {
   try {
+    console.log('Recording game result:', { playerName, result, difficulty });
+    
     // Get player
-    const { data: player } = await supabase
-      .from('players_tictactoe')
+    const { data: player, error: fetchError } = await supabase
+      .from('players_tictactoe_reg2025')
       .select('*')
       .eq('name', playerName)
       .single();
-    
-    if (!player) {
-      console.error('Player not found');
+
+    if (fetchError) {
+      console.error('Player not found:', fetchError);
       return false;
     }
-    
+
     // Calculate score for this game
     const score = calculateScore(result, difficulty);
-    
+
     // Update player stats
     const updates = {
       total_score: player.total_score + score,
       games_played: player.games_played + 1,
       last_game_at: new Date().toISOString()
     };
-    
+
     // Update specific result counter
     if (result === 'win') {
       updates.wins = player.wins + 1;
@@ -97,18 +118,21 @@ export async function recordGameResult(playerName, result, difficulty) {
     } else if (result === 'draw') {
       updates.draws = player.draws + 1;
     }
-    
+
     // Update player record
     const { error: updateError } = await supabase
-      .from('players_tictactoe')
+      .from('players_tictactoe_reg2025')
       .update(updates)
       .eq('name', playerName);
-    
-    if (updateError) throw updateError;
-    
+
+    if (updateError) {
+      console.error('Error updating player stats:', updateError);
+      throw updateError;
+    }
+
     // Record game in game_history table
     const { error: historyError } = await supabase
-      .from('game_history_tictactoe')
+      .from('game_history_tictactoe_reg2025')
       .insert({
         player_name: playerName,
         result,
@@ -116,9 +140,13 @@ export async function recordGameResult(playerName, result, difficulty) {
         score,
         created_at: new Date().toISOString()
       });
-    
-    if (historyError) throw historyError;
-    
+
+    if (historyError) {
+      console.error('Error recording game history:', historyError);
+      throw historyError;
+    }
+
+    console.log('Game result recorded successfully');
     return true;
   } catch (error) {
     console.error('Error recording game result:', error);
@@ -129,13 +157,20 @@ export async function recordGameResult(playerName, result, difficulty) {
 // Get leaderboard data
 export async function getLeaderboard() {
   try {
+    console.log('Fetching leaderboard...');
+    
     const { data, error } = await supabase
-      .from('players_tictactoe')
+      .from('players_tictactoe_reg2025')
       .select('*')
       .order('total_score', { ascending: false })
       .limit(20);
-    
-    if (error) throw error;
+
+    if (error) {
+      console.error('Error fetching leaderboard:', error);
+      throw error;
+    }
+
+    console.log('Leaderboard fetched successfully:', data?.length || 0, 'players');
     return data || [];
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
@@ -147,11 +182,11 @@ export async function getLeaderboard() {
 export async function getPlayerStats(playerName) {
   try {
     const { data, error } = await supabase
-      .from('players_tictactoe')
+      .from('players_tictactoe_reg2025')
       .select('*')
       .eq('name', playerName)
       .single();
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
@@ -164,12 +199,12 @@ export async function getPlayerStats(playerName) {
 export async function getPlayerHistory(playerName) {
   try {
     const { data, error } = await supabase
-      .from('game_history_tictactoe')
+      .from('game_history_tictactoe_reg2025')
       .select('*')
       .eq('player_name', playerName)
       .order('created_at', { ascending: false })
       .limit(10);
-    
+
     if (error) throw error;
     return data || [];
   } catch (error) {

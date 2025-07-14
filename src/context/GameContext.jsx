@@ -74,16 +74,24 @@ export function GameProvider({ children }) {
   // Register player
   const registerPlayer = async (name) => {
     dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+    
     try {
+      console.log('Registering player:', name);
       const player = await createOrUpdatePlayer(name);
+      
       if (player) {
+        console.log('Player registered successfully:', player);
         dispatch({ type: 'SET_PLAYER', payload: player });
         return true;
+      } else {
+        console.error('Failed to register player - no player returned');
+        dispatch({ type: 'SET_ERROR', payload: 'Failed to register player' });
+        return false;
       }
-      return false;
     } catch (error) {
       console.error('Error registering player:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to register player' });
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to register player: ' + error.message });
       return false;
     }
   };
@@ -103,7 +111,6 @@ export function GameProvider({ children }) {
             timestamp: new Date().toISOString()
           }
         });
-        
         // Refresh leaderboard
         fetchLeaderboard();
         return true;

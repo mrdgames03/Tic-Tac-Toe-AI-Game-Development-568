@@ -21,30 +21,38 @@ function PlayerRegistration() {
       setError('Please enter your name');
       return;
     }
-    
+
     if (name.trim().length < 2) {
       setError('Name must be at least 2 characters long');
       return;
     }
-    
+
     if (name.trim().length > 20) {
       setError('Name must be less than 20 characters');
       return;
     }
-    
+
     setIsSubmitting(true);
-    const success = await registerPlayer(name.trim());
-    setIsSubmitting(false);
+    setError('');
     
-    if (success) {
-      navigate('/game');
-    } else {
-      setError('Failed to register. Please try again.');
+    try {
+      const success = await registerPlayer(name.trim());
+      
+      if (success) {
+        navigate('/game');
+      } else {
+        setError(state.error || 'Failed to register. Please try again.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -112,6 +120,7 @@ function PlayerRegistration() {
               <SafeIcon icon={FiArrowLeft} className="text-sm" />
               <span>Back</span>
             </motion.button>
+
             <motion.button
               type="submit"
               whileHover={{ scale: 1.02 }}
@@ -132,6 +141,14 @@ function PlayerRegistration() {
             </motion.button>
           </div>
         </form>
+
+        {/* Debug info (remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-2 bg-gray-800 rounded text-xs text-gray-400">
+            <p>Debug: Loading = {state.isLoading ? 'true' : 'false'}</p>
+            <p>Debug: Error = {state.error || 'none'}</p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
